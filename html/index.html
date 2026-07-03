@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toffy Scoreboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app" v-cloak>
+        <div v-show="showMenu" class="overlay">
+            <div class="panel">
+
+                <!-- ═══════════ HEADER ═══════════ -->
+                <header class="panel-head">
+                    <div class="brand">
+                        <div class="brand-mark"><i class="fa-solid fa-chart-simple"></i></div>
+                        <div class="brand-text">
+                            <span class="brand-name" v-html="t('logo_title')"></span>
+                            <span class="brand-live">
+                                <span class="live-dot"></span>
+                                Live &middot; {{ status.totalPlayers }} connected
+                            </span>
+                        </div>
+                    </div>
+
+                    <nav class="tabs">
+                        <button class="tab" :class="{ on: activeTab === 'players' }" @click="switchTab('players')">
+                            <i class="fa-solid fa-users"></i>
+                            <span>{{ t('active_players') }}</span>
+                            <span class="tab-count">{{ status.totalPlayers }}</span>
+                        </button>
+                        <button class="tab" :class="{ on: activeTab === 'jobs' }" @click="switchTab('jobs')">
+                            <i class="fa-solid fa-briefcase"></i>
+                            <span>{{ t('job_statistics') }}</span>
+                        </button>
+                        <button class="tab" :class="{ on: activeTab === 'heists' }" @click="switchTab('heists')">
+                            <i class="fa-solid fa-mask"></i>
+                            <span>{{ t('heists_status') }}</span>
+                        </button>
+                    </nav>
+
+                    <div class="head-tools">
+                        <label class="search" :class="{ filled: searchQuery }">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" v-model="searchQuery" :placeholder="t('search_placeholder')">
+                            <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </label>
+                        <button class="close-btn" @click="closeMenu" :title="t('close')">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- ═══════════ STAT STRIP ═══════════ -->
+                <section class="stat-strip">
+                    <div class="stat">
+                        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-body">
+                            <span class="stat-num">{{ status.totalPlayers }}</span>
+                            <span class="stat-label">Players Online</span>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon gold"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div class="stat-body">
+                            <span class="stat-num">{{ status.staffOnline }}</span>
+                            <span class="stat-label">Staff On Duty</span>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon green"><i class="fa-solid fa-briefcase"></i></div>
+                        <div class="stat-body">
+                            <span class="stat-num">{{ onDutyTotal }}</span>
+                            <span class="stat-label">Services Working</span>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon purple"><i class="fa-solid fa-mask"></i></div>
+                        <div class="stat-body">
+                            <span class="stat-num">{{ heistsOpen }}</span>
+                            <span class="stat-label">Heists Available</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ═══════════ CONTENT ═══════════ -->
+                <main class="panel-body">
+
+                    <!-- PLAYERS -->
+                    <div v-if="activeTab === 'players'" class="players-view">
+                        <div class="table-scroll">
+                            <table class="player-table">
+                                <thead>
+                                    <tr>
+                                        <th class="c-id">{{ t('header_id') }}</th>
+                                        <th class="c-name">{{ t('header_name') }}</th>
+                                        <th class="c-job">{{ t('header_job') }}</th>
+                                        <th class="c-duty">Status</th>
+                                        <th class="c-ping">{{ t('header_ping') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="player in filteredPlayers" :key="player.id" :class="{ 'row-staff': player.isStaff }">
+                                        <td class="c-id"><span class="id-tag">{{ player.id }}</span></td>
+                                        <td class="c-name">
+                                            <span class="avatar" :class="{ adm: player.isStaff }">
+                                                <i class="fa-solid" :class="player.isStaff ? 'fa-user-shield' : 'fa-user'"></i>
+                                            </span>
+                                            <span class="name">{{ player.name }}</span>
+                                            <span v-if="player.isStaff" class="staff-tag"><i class="fa-solid fa-crown"></i> Staff</span>
+                                        </td>
+                                        <td class="c-job">
+                                            <span v-if="player.jobName && player.jobName !== 'unemployed'"
+                                                  class="job-chip" :style="getJobBadgeStyle(player.jobName)">{{ player.job }}</span>
+                                            <span v-else class="job-chip civ">Civilian</span>
+                                        </td>
+                                        <td class="c-duty">
+                                            <span v-if="player.jobName && player.jobName !== 'unemployed'"
+                                                  class="duty" :class="player.onDuty ? 'on' : 'off'">
+                                                <span class="duty-dot"></span>{{ player.onDuty ? 'On Duty' : 'Off Duty' }}
+                                            </span>
+                                            <span v-else class="duty idle"><span class="duty-dot"></span>Free Roam</span>
+                                        </td>
+                                        <td class="c-ping">
+                                            <span class="ping" :class="getPingClass(player.ping)">
+                                                <i class="fa-solid fa-wifi"></i>{{ player.ping }}<small>ms</small>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div v-if="filteredPlayers.length === 0" class="empty">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <p>{{ searchQuery ? 'No players match your search' : 'No players online right now' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SERVICES / JOBS -->
+                    <div v-else-if="activeTab === 'jobs'" class="scroll-area">
+                        <div class="service-list">
+                            <div v-for="job in status.jobStats" :key="job.job" class="service-row" :style="getJobCardStyle(job.job)">
+                                <div class="service-icon" :style="getJobIconCircleStyle(job.job)">
+                                    <i :class="job.icon"></i>
+                                </div>
+                                <div class="service-main">
+                                    <div class="service-top">
+                                        <span class="service-name">{{ job.label }}</span>
+                                        <span class="service-count" :class="{ zero: job.count === 0 }">
+                                            {{ job.count }} <small>on duty</small>
+                                        </span>
+                                    </div>
+                                    <div class="service-bar">
+                                        <div class="service-fill" :style="getJobBarFillStyle(job.job, job.count)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="status.jobStats.length === 0" class="empty">
+                                <i class="fa-solid fa-briefcase"></i>
+                                <p>No tracked services configured</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HEISTS -->
+                    <div v-else-if="activeTab === 'heists'" class="scroll-area">
+                        <div class="heist-list">
+                            <div v-for="heist in status.heists" :key="heist.id" class="heist-row"
+                                 :class="{ open: heist.status === 'available' }">
+                                <div class="heist-icon">
+                                    <i :class="heist.icon"></i>
+                                </div>
+                                <div class="heist-main">
+                                    <span class="heist-name">{{ heist.label }}</span>
+                                    <span class="heist-req">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                        Requires {{ heist.minCops }} {{ heist.minCops === 1 ? 'officer' : 'officers' }} online
+                                    </span>
+                                </div>
+                                <div class="heist-state" :class="heist.status === 'available' ? 'st-open' : 'st-locked'">
+                                    <i class="fa-solid" :class="heist.status === 'available' ? 'fa-lock-open' : 'fa-lock'"></i>
+                                    {{ heist.status === 'available' ? t('status_available') : t('status_unavailable') }}
+                                </div>
+                            </div>
+                            <div v-if="status.heists.length === 0" class="empty">
+                                <i class="fa-solid fa-mask"></i>
+                                <p>No heists configured</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </main>
+
+                <!-- ═══════════ FOOTER ═══════════ -->
+                <footer class="panel-foot">
+                    <div class="foot-keys">
+                        <span class="key-hint"><kbd>ESC</kbd> to close</span>
+                        <span class="key-sep"></span>
+                        <span class="key-hint"><kbd>Hold ALT</kbd> to show nearby IDs</span>
+                    </div>
+                    <div class="foot-brand">
+                        <i class="fa-solid fa-bolt"></i> Toffy Scripts
+                    </div>
+                </footer>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
