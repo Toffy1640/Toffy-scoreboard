@@ -14,7 +14,6 @@
         <div v-show="showMenu" class="overlay">
             <div class="panel">
 
-                <!-- ═══════════ HEADER ═══════════ -->
                 <header class="panel-head">
                     <div class="brand">
                         <div class="brand-mark"><i class="fa-solid fa-chart-simple"></i></div>
@@ -57,7 +56,6 @@
                     </div>
                 </header>
 
-                <!-- ═══════════ STAT STRIP ═══════════ -->
                 <section class="stat-strip">
                     <div class="stat">
                         <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
@@ -89,7 +87,6 @@
                     </div>
                 </section>
 
-                <!-- ═══════════ CONTENT ═══════════ -->
                 <main class="panel-body">
 
                     <!-- PLAYERS -->
@@ -143,7 +140,6 @@
                         </div>
                     </div>
 
-                    <!-- SERVICES / JOBS -->
                     <div v-else-if="activeTab === 'jobs'" class="scroll-area">
                         <div class="service-list">
                             <div v-for="job in status.jobStats" :key="job.job" class="service-row" :style="getJobCardStyle(job.job)">
@@ -169,7 +165,6 @@
                         </div>
                     </div>
 
-                    <!-- HEISTS -->
                     <div v-else-if="activeTab === 'heists'" class="scroll-area">
                         <div class="heist-list">
                             <div v-for="heist in status.heists" :key="heist.id" class="heist-row"
@@ -198,7 +193,6 @@
 
                 </main>
 
-                <!-- ═══════════ FOOTER ═══════════ -->
                 <footer class="panel-foot">
                     <div class="foot-keys">
                         <span class="key-hint"><kbd>ESC</kbd> to close</span>
