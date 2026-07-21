@@ -102,4 +102,4 @@ Status changes are pushed live to every open scoreboard — no reopen needed.
 Questions, bugs or custom work? Join the Discord and message me directly:
 
 **➜ [discord.gg/Qv58w3PX7R](https://discord.gg/Qv58w3PX7R)**
-1
+
